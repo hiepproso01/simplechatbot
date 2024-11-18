@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatbot Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        #prompt-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0052cc;
+        }
+        #output {
+            min-height: 200px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+        }
+        .loading {
+            display: none;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Chatbot với sử dụng Gemini AI</h1>
+        <div class="input-container">
+            <input type="text" id="prompt-input" placeholder="Nhập câu hỏi của bạn...">
+            <button id="send-button" onclick="generateResponse()">Gửi</button>
+        </div>
+        <div class="loading" id="loading">Đang xử lý...</div>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const API_KEY = "AIzaSyC9QYwc1SkE7-C1i16BDZlgUDAKE9Ex9Rw";
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+
+        async function generateResponse() {
+            const promptInput = document.getElementById('prompt-input');
+            const outputDiv = document.getElementById('output');
+            const loadingDiv = document.getElementById('loading');
+            const sendButton = document.getElementById('send-button');
+            const prompt = promptInput.value;
+
+            if (!prompt) {
+                alert('Vui lòng nhập câu hỏi!');
+                return;
+            }
+
+            try {
+                // Disable button và hiển thị loading
+                sendButton.disabled = true;
+                loadingDiv.style.display = 'block';
+                outputDiv.textContent = '';
+
+                // Chuẩn bị request body
+                const requestBody = {
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }]
+                };
+
+                // Gọi API
+                const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Hiển thị kết quả
+                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                    const result = data.candidates[0].content.parts[0].text;
+                    outputDiv.textContent = result;
+                    promptInput.value = ''; // Xóa input sau khi gửi thành công
+                } else {
+                    throw new Error('Không nhận được phản hồi hợp lệ từ API');
+                }
+
+            } catch (error) {
+                outputDiv.textContent = 'Lỗi: ' + error.message;
+                console.error('Error:', error);
+            } finally {
+                // Restore UI state
+                sendButton.disabled = false;
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        // Thêm khả năng gửi bằng phím Enter
+        document.getElementById('prompt-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateResponse();
+            }
+        });
+    </script>
+</body>
+</html>
